@@ -79,6 +79,7 @@ class TwoLayerNet(object):
     
     #first layer
     X1 = X.dot(W1)+b1
+    
     #RelU
     X1=np.maximum(0, X1)
 
@@ -107,8 +108,6 @@ class TwoLayerNet(object):
 
     e = np.exp(scores)
     s = np.sum(e, axis=1)
-    # e = e/s[:,np.newaxis]
-    # e[np.arange(N), y] -= 1
 
     loss+= np.sum(-s_correct+np.log(s))
 
@@ -126,8 +125,20 @@ class TwoLayerNet(object):
     # TODO: Compute the backward pass, computing the derivatives of the weights #
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
-    #############################################################################
-    pass
+    #############################################################################    
+    
+    softmaxGrad = e/s[:,np.newaxis]
+    softmaxGrad[np.arange(N), y] -= 1
+    softmaxGrad/=N
+
+    grads['W2']=np.dot(X1.T,softmaxGrad)+reg*2*W2
+    dX2 = softmaxGrad.dot(W2.T)
+
+    reluGrad = (1*(X1>0))*dX2
+    
+    grads['W1']=X.T.dot(reluGrad)
+    grads['W1']+=reg*2*W1
+    
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
