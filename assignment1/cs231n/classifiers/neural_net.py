@@ -132,12 +132,13 @@ class TwoLayerNet(object):
     softmaxGrad/=N
 
     grads['W2']=np.dot(X1.T,softmaxGrad)+reg*2*W2
+    grads['b2'] = softmaxGrad;
     dX2 = softmaxGrad.dot(W2.T)
-
+    
     reluGrad = (1*(X1>0))*dX2
     
-    grads['W1']=X.T.dot(reluGrad)
-    grads['W1']+=reg*2*W1
+    grads['W1']=X.T.dot(reluGrad)+reg*2*W1
+    grads['b1'] = reluGrad
     
     #############################################################################
     #                              END OF YOUR CODE                             #
@@ -182,7 +183,9 @@ class TwoLayerNet(object):
       # TODO: Create a random minibatch of training data and labels, storing  #
       # them in X_batch and y_batch respectively.                             #
       #########################################################################
-      pass
+      random_ind = np.random.choice(range(num_train), batch_size)
+      X_batch = X[random_ind]
+      y_batch = y[random_ind]
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -197,7 +200,11 @@ class TwoLayerNet(object):
       # using stochastic gradient descent. You'll need to use the gradients   #
       # stored in the grads dictionary defined above.                         #
       #########################################################################
-      pass
+      self.params['W1']-= learning_rate * grads['W1']
+      self.params['W2']-= learning_rate * grads['W2']
+      self.params['b1']-= learning_rate * np.mean(grads['b1'], axis=0)
+      self.params['b2']-= learning_rate * np.mean(grads['b2'], axis=0)
+      
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -242,7 +249,8 @@ class TwoLayerNet(object):
     ###########################################################################
     # TODO: Implement this function; it should be VERY simple!                #
     ###########################################################################
-    pass
+    loss = self.loss(X)
+    y_pred = np.argmax(loss, axis=1)
     ###########################################################################
     #                              END OF YOUR CODE                           #
     ###########################################################################
