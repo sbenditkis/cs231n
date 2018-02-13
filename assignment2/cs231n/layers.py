@@ -379,18 +379,28 @@ def conv_forward_naive(x, w, b, conv_param):
 
     pad = conv_param.get('pad',0)
     stride = conv_param.get('stride',1)
+    N = x.shape[0]
+    C = x.shape[1]
     H = x.shape[2]
     W = x.shape[3]
+    F = w.shape[0]
     HH = w.shape[2]
     WW = w.shape[3]
 
     H1 = 1 + (H + 2 * pad - HH) / stride
     W1 = 1 + (W + 2 * pad - WW) / stride
     
-    xp=np.pad(x, pad, mode='constant')
-    for i in range(pad, x.shape[2]-pad, stride):
-        for j in range(pad, x.shape[3]-pad, stride):
-            
+    out = np.zeros((N,F,H1,W1));
+    
+    pad_width=((0,0),(0,0),(pad,pad),(pad,pad))
+    
+    xp=np.pad(x, pad_width=pad_width, mode='constant')
+    
+    for i in range(0, xp.shape[2], stride):
+        for j in range(0, xp.shape[3], stride):
+            xpr=xp[:,:,i:i+HH,j:j+WW]
+            xpr=xpr.reshape(xpr.shape[0], xpr.shape[1]*xpr.shape[2]*xpr.shape[3])
+            out[:,:,i/stride,j/stride] = xpr.dot(w.flatten(), axis=1)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
