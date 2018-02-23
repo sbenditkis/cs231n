@@ -188,10 +188,12 @@ class FullyConnectedNet(object):
         dim_out = 0
         for i in range(0, self.num_layers):
             dim_out = hidden_dims[i] if i<self.num_layers-1 else num_classes
-            WName = 'W'+str(i+1)
-            bName = 'b'+str(i+1)
-            self.params[WName] = weight_scale*np.random.randn(dim_in, dim_out)
-            self.params[bName] = np.zeros(dim_out)
+            i_suffix = str(i+1)
+            self.params['W'+i_suffix] = weight_scale*np.random.randn(dim_in, dim_out)
+            self.params['b'+i_suffix] = np.zeros(dim_out)
+            if use_batchnorm and i<self.num_layers-1:
+                self.params['gamma'+i_suffix] = np.ones(dim_out)
+                self.params['beta'+i_suffix] = np.zeros(dim_out)
             dim_in = dim_out
 
         ############################################################################
@@ -257,7 +259,18 @@ class FullyConnectedNet(object):
             W = self.params['W'+str(i)]
             b = self.params['b'+str(i)]
             if i<self.num_layers:
-                out, cache[i] = affine_relu_forward(out, W, b) 
+                ar_cache = None
+                do_cache = None
+                bn_cache = None
+                out, ar_cache = affine_relu_forward(out, W, b)
+                if self.use_dropout:
+                    out, do_cache = dropout_forward(out, self.dropout_param)
+                if self.use_batchnorm:
+                    out, bn_cache = batchnorm_forward(out, 
+                        self.params['gamma'+str(i)],
+                        self.params['beta'+str(i)],
+                        self.bn_params[i-1])
+                cache[i] = (ar_cache, bn_cache, do_cache) 
             else:
                 out, cache[i] = affine_forward(out, W, b)
         scores = out
@@ -288,13 +301,20 @@ class FullyConnectedNet(object):
         for i in range(self.num_layers, 0, -1):
             WName = 'W'+str(i)
             bName = 'b'+str(i)
+            gammaName = 'gamma'+str(i)
+            betaName = 'beta'+str(i)
             W = self.params[WName]
             b = self.params[bName]
             loss+=0.5*self.reg*np.sum(W*W)
             if i == self.num_layers:
                 dx, dw, db = affine_backward(dx,cache[i])
             else:
-                dx, dw, db = affine_relu_backward(dx, cache[i])    
+                ar_cache, bn_cache, do_cache = cache[i]
+                if self.use_batchnorm:
+                    dx, grads[gammaName], grads[betaName] = batchnorm_backward_alt(dx, bn_cache)
+                if self.use_dropout:
+                    dx = dropout_backward(dx, do_cache)
+                dx, dw, db = affine_relu_backward(dx, ar_cache)
             grads[WName] = dw+self.reg*W
             grads[bName] = db
 
